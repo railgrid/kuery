@@ -615,3 +615,34 @@ func TestSQL_DottedLabelKeyAddressesOneKey(t *testing.T) {
 	})
 	assertArgValue(t, q.Args, `$."app.kubernetes.io/name"`)
 }
+
+// TestSQL_ClusterRootUnionIDIsText locks in the fix for the Postgres
+// "UNION types character varying and uuid cannot be matched" (SQLSTATE 42804)
+// error: a clusters-rooted query with relations UNION ALLs a root branch whose
+// id is clusters.name (varchar) with relation branches whose id is objects.id
+// (uuid). The id column must be cast to text in every relation branch so the
+// union type-checks. SQLite is dynamically typed and never reproduced this, so
+// this test pins the postgres-dialect SQL shape.
+func TestSQL_ClusterRootUnionIDIsText(t *testing.T) {
+	spec := &v1alpha1.QuerySpec{
+		Root: v1alpha1.RootClusters,
+		Objects: &v1alpha1.ObjectsSpec{
+			ID: true,
+			Relations: map[string]v1alpha1.RelationSpec{
+				"members": {Objects: &v1alpha1.ObjectsSpec{ID: true}},
+			},
+		},
+	}
+	Validate(spec)
+	g := NewGenerator("postgres")
+	q, err := g.Generate(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Root branch projects the cluster name as id (text).
+	assertContains(t, q.SQL, ".name AS id")
+	// Relation branch casts the uuid id to text so the UNION ALL type-matches.
+	assertContains(t, q.SQL, "AS TEXT) AS id")
+	// No relation branch may project a bare uuid id into the union.
+	assertNotContains(t, q.SQL, "l1.id,")
+}

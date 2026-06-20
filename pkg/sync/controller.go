@@ -12,9 +12,23 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
+	"sigs.k8s.io/multicluster-runtime/pkg/multicluster"
 )
+
+// ConfigResolver derives the rest.Config used to index a cluster (discovery +
+// dynamic informers) from the engaged multicluster.Cluster. It is the seam that
+// keeps the SyncController provider-agnostic: the default returns the cluster's
+// own config, while e.g. a kcp "full" mode resolver rewrites the host to a
+// front-proxy /clusters/<name> endpoint built from an admin kubeconfig.
+type ConfigResolver func(clusterName multicluster.ClusterName, cl cluster.Cluster) (*rest.Config, error)
+
+// defaultConfigResolver indexes against the cluster's own rest.Config.
+func defaultConfigResolver(_ multicluster.ClusterName, cl cluster.Cluster) (*rest.Config, error) {
+	return cl.GetConfig(), nil
+}
 
 // DefaultResyncPeriod is the default informer resync interval.
 const DefaultResyncPeriod = 10 * time.Minute
@@ -28,20 +42,30 @@ type Config struct {
 	// Non-whitelisted types are still recorded in resource_types.
 	Whitelist    *Whitelist
 	ResyncPeriod time.Duration
+
+	// ConfigResolver derives the rest.Config used to index each engaged cluster.
+	// Nil defaults to the cluster's own config (cl.GetConfig()).
+	ConfigResolver ConfigResolver
 }
 
-// SyncController manages per-cluster informers that sync Kubernetes objects into the store.
-// It implements the multicluster-runtime Aware interface via Engage/Disengage.
+// SyncController manages per-cluster informers that sync Kubernetes objects into
+// the store. It implements the multicluster-runtime multicluster.Aware interface:
+// providers (static kubeconfigs, kcp apiexport, Cluster API, ...) call Engage as
+// clusters appear and cancel the per-cluster context to disengage them.
 type SyncController struct {
-	config Config
+	config         Config
+	configResolver ConfigResolver
 
 	mu       sync.Mutex
-	clusters map[string]*clusterState
+	clusters map[multicluster.ClusterName]*clusterState
 }
 
-// clusterState tracks the running informers and cancel function for a single cluster.
+var _ multicluster.Aware = &SyncController{}
+
+// clusterState tracks the engaged cluster instance and cancel function.
 type clusterState struct {
-	cancel context.CancelFunc
+	cluster cluster.Cluster
+	cancel  context.CancelFunc
 }
 
 // NewSyncController creates a new SyncController.
@@ -52,101 +76,139 @@ func NewSyncController(cfg Config) *SyncController {
 	if cfg.Blacklist == nil {
 		cfg.Blacklist = NewBlacklist(DefaultBlacklist)
 	}
+	resolver := cfg.ConfigResolver
+	if resolver == nil {
+		resolver = defaultConfigResolver
+	}
 	return &SyncController{
-		config:   cfg,
-		clusters: make(map[string]*clusterState),
+		config:         cfg,
+		configResolver: resolver,
+		clusters:       make(map[multicluster.ClusterName]*clusterState),
 	}
 }
 
-// Engage is called when a cluster becomes available. It runs discovery,
-// populates resource_types, starts informers for all watchable resources,
-// and marks the cluster as active.
-func (sc *SyncController) Engage(ctx context.Context, clusterName string, cl cluster.Cluster) error {
-	logger := klog.FromContext(ctx).WithValues("cluster", clusterName)
-	logger.Info("engaging cluster")
+// Engage is called by a multicluster provider when a cluster becomes available.
+// It runs discovery, populates resource_types, starts informers for all watchable
+// resources, and marks the cluster as active. The passed context is tied to the
+// cluster's lifecycle: when the provider removes the cluster it cancels ctx, which
+// stops the informers and marks the cluster stale. Engage is re-entrant and
+// non-blocking, and a no-op when re-called with the same cluster instance.
+func (sc *SyncController) Engage(ctx context.Context, clusterName multicluster.ClusterName, cl cluster.Cluster) error {
+	name := clusterName.String()
+	logger := klog.FromContext(ctx).WithValues("cluster", name)
 
 	sc.mu.Lock()
-	// If already engaged, disengage first.
-	if existing, ok := sc.clusters[clusterName]; ok {
-		existing.cancel()
-		delete(sc.clusters, clusterName)
+	// No-op if the same cluster instance is already engaged.
+	if existing, ok := sc.clusters[clusterName]; ok && existing.cluster == cl {
+		sc.mu.Unlock()
+		return nil
 	}
+	// A different instance was engaged before: cancel it before replacing.
+	if existing, ok := sc.clusters[clusterName]; ok && existing.cancel != nil {
+		existing.cancel()
+	}
+	clusterCtx, clusterCancel := context.WithCancel(ctx)
+	sc.clusters[clusterName] = &clusterState{cluster: cl, cancel: clusterCancel}
 	sc.mu.Unlock()
+
+	logger.Info("engaging cluster")
 
 	// Mark cluster as active.
 	now := time.Now()
 	if err := sc.config.Store.UpsertCluster(ctx, &store.ClusterModel{
-		Name:      clusterName,
+		Name:      name,
 		Status:    "active",
 		LastSeen:  now,
 		EngagedAt: &now,
 		TTL:       3600,
 	}); err != nil {
-		return fmt.Errorf("failed to upsert cluster %s: %w", clusterName, err)
+		clusterCancel()
+		return fmt.Errorf("failed to upsert cluster %s: %w", name, err)
+	}
+
+	// Resolve the rest.Config used to index this cluster. The default is the
+	// cluster's own config; kcp "full" mode rewrites it to an admin endpoint.
+	restConfig, err := sc.configResolver(clusterName, cl)
+	if err != nil {
+		clusterCancel()
+		return fmt.Errorf("failed to resolve config for cluster %s: %w", name, err)
 	}
 
 	// Create discovery client.
-	restConfig := cl.GetConfig()
 	dc, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create discovery client for %s: %w", clusterName, err)
+		clusterCancel()
+		return fmt.Errorf("failed to create discovery client for %s: %w", name, err)
 	}
 
 	// Run discovery to populate resource_types and get watchable resources.
-	watchable, err := RunDiscovery(ctx, clusterName, dc, sc.config.Store, sc.config.Blacklist, sc.config.Whitelist)
+	watchable, err := RunDiscovery(clusterCtx, name, dc, sc.config.Store, sc.config.Blacklist, sc.config.Whitelist)
 	if err != nil {
-		return fmt.Errorf("discovery failed for cluster %s: %w", clusterName, err)
+		clusterCancel()
+		return fmt.Errorf("discovery failed for cluster %s: %w", name, err)
 	}
 
 	// Create dynamic client for informers.
 	dynClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create dynamic client for %s: %w", clusterName, err)
+		clusterCancel()
+		return fmt.Errorf("failed to create dynamic client for %s: %w", name, err)
 	}
 
-	// Create a child context for this cluster's informers.
-	clusterCtx, clusterCancel := context.WithCancel(ctx)
-
-	sc.mu.Lock()
-	sc.clusters[clusterName] = &clusterState{cancel: clusterCancel}
-	sc.mu.Unlock()
-
 	// Start informers for all watchable resources.
-	go sc.runInformers(clusterCtx, clusterName, dynClient, watchable)
+	go sc.runInformers(clusterCtx, name, dynClient, watchable)
 
 	// Watch CRDs for discovery refresh.
-	go sc.watchCRDs(clusterCtx, clusterName, cl, dc)
+	go sc.watchCRDs(clusterCtx, name, restConfig, dc)
+
+	// On disengage (provider cancels ctx, or explicit Disengage), mark stale.
+	go func() {
+		<-clusterCtx.Done()
+		sc.mu.Lock()
+		if existing, ok := sc.clusters[clusterName]; ok && existing.cluster == cl {
+			delete(sc.clusters, clusterName)
+		}
+		sc.mu.Unlock()
+		sc.markStale(context.WithoutCancel(clusterCtx), name)
+	}()
 
 	logger.Info("cluster engaged", "watchable", len(watchable))
 	return nil
 }
 
-// Disengage is called when a cluster is removed. It stops all informers
-// and marks the cluster as stale.
+// Disengage stops a cluster's informers and marks it stale. Providers normally
+// disengage by cancelling the per-cluster context passed to Engage; this method
+// supports explicit removal and graceful shutdown of a named cluster.
 func (sc *SyncController) Disengage(ctx context.Context, clusterName string) error {
 	logger := klog.FromContext(ctx).WithValues("cluster", clusterName)
 	logger.Info("disengaging cluster")
 
 	sc.mu.Lock()
-	if state, ok := sc.clusters[clusterName]; ok {
-		state.cancel()
-		delete(sc.clusters, clusterName)
+	if state, ok := sc.clusters[multicluster.ClusterName(clusterName)]; ok {
+		if state.cancel != nil {
+			state.cancel()
+		}
+		delete(sc.clusters, multicluster.ClusterName(clusterName))
 	}
 	sc.mu.Unlock()
 
-	// Mark cluster as stale.
-	now := time.Now()
-	if err := sc.config.Store.UpsertCluster(ctx, &store.ClusterModel{
-		Name:     clusterName,
-		Status:   "stale",
-		LastSeen: now,
-	}); err != nil {
+	if err := sc.markStale(ctx, clusterName); err != nil {
 		logger.Error(err, "failed to mark cluster as stale")
 		return err
 	}
 
 	logger.Info("cluster disengaged")
 	return nil
+}
+
+// markStale records a cluster as no longer engaged.
+func (sc *SyncController) markStale(ctx context.Context, clusterName string) error {
+	now := time.Now()
+	return sc.config.Store.UpsertCluster(ctx, &store.ClusterModel{
+		Name:     clusterName,
+		Status:   "stale",
+		LastSeen: now,
+	})
 }
 
 // runInformers starts a dynamic shared informer factory and adds event handlers
@@ -183,11 +245,11 @@ func (sc *SyncController) runInformers(ctx context.Context, clusterName string, 
 }
 
 // watchCRDs watches CustomResourceDefinition changes and triggers discovery refresh.
-func (sc *SyncController) watchCRDs(ctx context.Context, clusterName string, cl cluster.Cluster, dc discovery.DiscoveryInterface) {
+func (sc *SyncController) watchCRDs(ctx context.Context, clusterName string, restConfig *rest.Config, dc discovery.DiscoveryInterface) {
 	logger := klog.FromContext(ctx).WithValues("cluster", clusterName)
 
 	// Watch CRDs using a dynamic informer.
-	dynClient, err := dynamic.NewForConfig(cl.GetConfig())
+	dynClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
 		logger.Error(err, "failed to create dynamic client for CRD watch")
 		return

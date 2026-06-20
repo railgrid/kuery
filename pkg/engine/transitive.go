@@ -192,8 +192,11 @@ func buildTransitiveCTE(
 
 	// The SELECT from the CTE for the UNION ALL.
 	// Only include object columns + projected_object + path + level + relation_name (no depth/visited).
+	// id is cast to text here (the CTE body keeps it as the native uuid) so this
+	// branch type-matches a clusters-rooted root branch, whose id is a varchar
+	// (clusters.name), in the outer UNION ALL — Postgres rejects uuid/varchar (42804).
 	selectCols := fmt.Sprintf(
-		"%s.id, %s.uid, %s.cluster, %s.api_group, %s.api_version, %s.kind, %s.resource, "+
+		"CAST(%s.id AS TEXT) AS id, %s.uid, %s.cluster, %s.api_group, %s.api_version, %s.kind, %s.resource, "+
 			"%s.namespace, %s.name, %s.labels, %s.annotations, %s.owner_refs, %s.conditions, "+
 			"%s.creation_ts, %s.resource_version, "+
 			"%s.projected_object, "+

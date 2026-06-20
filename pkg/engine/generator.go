@@ -656,8 +656,12 @@ func (g *Generator) buildPathExpr(alias string) string {
 
 // buildSelectCols generates the SELECT column list.
 func (g *Generator) buildSelectCols(alias, projectionExpr, pathExpr string, includeMetaCols bool) string {
+	// id is cast to text so a clusters-rooted UNION ALL (where the root branch's
+	// id is clusters.name, a varchar) type-matches the relation branches (where
+	// id is objects.id, a uuid). Postgres rejects a uuid/varchar UNION otherwise
+	// (SQLSTATE 42804); the row scanner reads id as a string regardless.
 	cols := fmt.Sprintf(
-		"%s.id, %s.uid, %s.cluster, %s.api_group, %s.api_version, %s.kind, %s.resource, "+
+		"CAST(%s.id AS TEXT) AS id, %s.uid, %s.cluster, %s.api_group, %s.api_version, %s.kind, %s.resource, "+
 			"%s.namespace, %s.name, %s.labels, %s.annotations, %s.owner_refs, %s.conditions, "+
 			"%s.creation_ts, %s.resource_version, "+
 			"%s AS projected_object, "+
