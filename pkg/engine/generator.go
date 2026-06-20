@@ -154,7 +154,11 @@ func (g *Generator) generateWithRelations(spec *v1alpha1.QuerySpec) (*GeneratedQ
 			return nil, err
 		}
 		var rootInnerSB strings.Builder
-		rootInnerSB.WriteString("SELECT * FROM objects ")
+		// Select only the objects table's columns, not "*": a cluster-label
+		// filter (e.g. tenant scoping) adds "JOIN clusters cl", and clusters
+		// also has a "name" column — "SELECT *" would put two "name" columns in
+		// the root_objects CTE, making every later l0.name ambiguous (42702).
+		fmt.Fprintf(&rootInnerSB, "SELECT %s.* FROM objects ", rootAlias)
 		rootInnerSB.WriteString(rootAlias)
 		for _, j := range rootJoins {
 			rootInnerSB.WriteString(" ")
@@ -877,7 +881,13 @@ func (g *Generator) buildObjectFilterWithRT(f v1alpha1.ObjectFilter, alias, rtAl
 	if f.JSONPath != "" {
 		switch g.dialect {
 		case "postgres":
-			clauses = append(clauses, fmt.Sprintf("jsonb_path_match(%s.object, ?::jsonpath)", alias))
+			// jsonb_path_match requires the path to be a predicate that yields a
+			// single boolean (e.g. "$.spec.replicas > 0"); a plain extraction
+			// path like "$.spec.replicas" makes it raise "single boolean result
+			// is expected" (SQLSTATE 22038). The filter's documented semantics
+			// (see the SQLite branch) are existence, so use jsonb_path_exists,
+			// which returns a boolean for any path.
+			clauses = append(clauses, fmt.Sprintf("jsonb_path_exists(%s.object, ?::jsonpath)", alias))
 			args = append(args, f.JSONPath)
 		default: // sqlite
 			// SQLite doesn't have jsonb_path_match. Use json_extract for simple paths.

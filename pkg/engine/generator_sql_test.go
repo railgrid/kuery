@@ -295,6 +295,35 @@ func TestSQL_ORFilter(t *testing.T) {
 	}
 }
 
+// TestSQL_LabelScopedRelationsNoStarSelect locks in the fix for the Postgres
+// "column reference \"name\" is ambiguous" error (SQLSTATE 42702). A
+// cluster-label filter (e.g. kedge's per-tenant ScopeToTenant) adds
+// "JOIN clusters cl" to the relations root inner query, and clusters also has a
+// "name" column — so a "SELECT *" there would put two "name" columns in the
+// root_objects CTE and make every later l0.name ambiguous. The root inner must
+// select only the objects table's columns.
+func TestSQL_LabelScopedRelationsNoStarSelect(t *testing.T) {
+	Validate(&v1alpha1.QuerySpec{})
+	g := NewGenerator("postgres")
+	q, err := g.Generate(&v1alpha1.QuerySpec{
+		Cluster: &v1alpha1.ClusterFilter{Labels: map[string]string{"tenant": "t1"}},
+		Objects: &v1alpha1.ObjectsSpec{
+			ID: true,
+			Relations: map[string]v1alpha1.RelationSpec{
+				"owners": {Objects: &v1alpha1.ObjectsSpec{ID: true}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The clusters join is what introduces the duplicate "name" column...
+	assertContains(t, q.SQL, "JOIN clusters cl")
+	// ...so the root inner must scope its projection to the objects alias.
+	assertContains(t, q.SQL, "SELECT l0.* FROM objects l0")
+	assertNotContains(t, q.SQL, "SELECT * FROM objects")
+}
+
 // --- Projection ---
 
 func TestSQL_SparseProjection(t *testing.T) {

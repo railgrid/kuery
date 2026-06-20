@@ -255,6 +255,35 @@ func TestPostgres_ClusterRoot(t *testing.T) {
 	}
 }
 
+// TestPostgres_LabelScopedRelations guards the Postgres "column reference
+// \"name\" is ambiguous" error (SQLSTATE 42702). A cluster-label filter adds a
+// "JOIN clusters cl" to the relations root inner query (this is how kedge's
+// ScopeToTenant constrains every UI query to a tenant's engaged clusters), and
+// clusters also has a "name" column. Before the fix the root inner did
+// "SELECT *", which collided with objects.name and broke every relations query
+// that went through tenant scoping. The query need not match any cluster — the
+// regression is purely that the generated SQL executes. SQLite never reproduced
+// it (different ambiguity rules), so this needs real Postgres.
+func TestPostgres_LabelScopedRelations(t *testing.T) {
+	t.Parallel()
+	proj := pgProj(map[string]any{"kind": true, "metadata": map[string]any{"name": true}})
+	// Must not error (42702) even though the label matches no cluster.
+	queryPostgres(t, v1alpha1.QuerySpec{
+		Cluster: &v1alpha1.ClusterFilter{Labels: map[string]string{"tenant": "acme"}},
+		Filter: &v1alpha1.QueryFilter{
+			Objects: []v1alpha1.ObjectFilter{
+				{GroupKind: &v1alpha1.GroupKindFilter{APIGroup: "apps", Kind: "Deployment"}, Namespace: "demo"},
+			},
+		},
+		Objects: &v1alpha1.ObjectsSpec{
+			Object: proj,
+			Relations: map[string]v1alpha1.RelationSpec{
+				"descendants": {Objects: &v1alpha1.ObjectsSpec{Object: proj}},
+			},
+		},
+	})
+}
+
 func TestPostgres_Projection(t *testing.T) {
 	t.Parallel()
 	status := queryPostgres(t, v1alpha1.QuerySpec{

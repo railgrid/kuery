@@ -15,20 +15,16 @@ import (
 	"gorm.io/datatypes"
 )
 
+// setupTestStore returns a migrated, isolated store for one test. The backend
+// is chosen at build time: SQLite :memory: by default (fast, no deps), or a real
+// PostgreSQL testcontainer under `-tags pgtest`. Every behavioral engine test
+// funnels through here, so building with pgtest runs the entire suite against
+// real Postgres — which is the only way to catch dialect-specific SQL bugs
+// (uuid/jsonb UNION type matching, ambiguous columns, @> containment, etc.)
+// that SQLite's dynamic typing silently tolerates. See backend_*_test.go.
 func setupTestStore(t *testing.T) store.Store {
 	t.Helper()
-	s, err := store.NewStore(store.Config{
-		Driver: "sqlite",
-		DSN:    ":memory:",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := s.AutoMigrate(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { s.Close() })
-	return s
+	return newBackendStore(t)
 }
 
 func seedObjects(t *testing.T, s store.Store, objs ...*store.ObjectModel) {

@@ -19,6 +19,26 @@ jobs:
       - name: Run unit tests
         run: go test ./... -v -count=1
 
+  postgres-engine-tests:
+    # Runs the full engine test suite against a real PostgreSQL (testcontainers)
+    # instead of SQLite. SQLite's dynamic typing hides dialect-specific SQL bugs
+    # (uuid/jsonb UNION typing, ambiguous columns, jsonb_path operators); this
+    # job is where those get caught. No K3s, so it's much faster than e2e.
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Docker is available by default on ubuntu-latest; testcontainers manages
+      # the PostgreSQL container.
+      - name: Run engine tests against PostgreSQL
+        run: go test -tags=pgtest -v -count=1 -timeout=10m ./pkg/engine/...
+
   e2e-tests:
     runs-on: ubuntu-latest
     needs: unit-tests
