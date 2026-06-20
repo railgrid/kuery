@@ -616,7 +616,13 @@ func (g *Generator) buildClusterRootClauses(spec *v1alpha1.QuerySpec, alias stri
 // and projection expect. id/uid/cluster/name all carry the cluster name; the
 // synthesized object embeds the cluster's status so a projection still resolves.
 func (g *Generator) clusterRootColumns(alias string) string {
-	var objExpr string
+	// emptyObj/emptyArr are the synthesized JSON columns (annotations,
+	// owner_refs, conditions). On Postgres they must be typed jsonb — the
+	// objects-table relation branches carry these as jsonb, and a bare '{}'/'[]'
+	// text literal makes the UNION ALL fail with "UNION types text and jsonb
+	// cannot be matched" (SQLSTATE 42804). SQLite stores JSON as text, so the
+	// plain literal is correct there.
+	var objExpr, emptyObj, emptyArr string
 	switch g.dialect {
 	case "postgres":
 		objExpr = fmt.Sprintf(
@@ -624,21 +630,23 @@ func (g *Generator) clusterRootColumns(alias string) string {
 				"'metadata',jsonb_build_object('name',%s.name),"+
 				"'status',jsonb_build_object('phase',%s.status))",
 			alias, alias)
+		emptyObj, emptyArr = "'{}'::jsonb", "'[]'::jsonb"
 	default: // sqlite
 		objExpr = fmt.Sprintf(
 			"json_object('apiVersion','kuery.io/v1','kind','Cluster',"+
 				"'metadata',json_object('name',%s.name),"+
 				"'status',json_object('phase',%s.status))",
 			alias, alias)
+		emptyObj, emptyArr = "'{}'", "'[]'"
 	}
 	return fmt.Sprintf(
 		"%s.name AS id, %s.name AS uid, %s.name AS cluster, "+
 			"'kuery.io' AS api_group, 'v1' AS api_version, 'Cluster' AS kind, 'clusters' AS resource, "+
 			"'' AS namespace, %s.name AS name, %s.labels AS labels, "+
-			"'{}' AS annotations, '[]' AS owner_refs, '[]' AS conditions, "+
+			"%s AS annotations, %s AS owner_refs, %s AS conditions, "+
 			"%s.engaged_at AS creation_ts, '' AS resource_version, "+
 			"%s AS object",
-		alias, alias, alias, alias, alias, alias, objExpr)
+		alias, alias, alias, alias, alias, emptyObj, emptyArr, emptyArr, alias, objExpr)
 }
 
 // buildProjection generates the projection SQL expression.

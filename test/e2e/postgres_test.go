@@ -213,6 +213,48 @@ func TestPostgres_CrossClusterLinked(t *testing.T) {
 	}
 }
 
+// TestPostgres_ClusterRoot exercises a clusters-rooted query with relations —
+// the only path that builds a UNION ALL between the synthesized clusters-table
+// root branch and the objects-table relation branches. This is what produced
+// the Postgres-only "UNION types ... cannot be matched" errors (SQLSTATE 42804):
+// first uuid (objects.id) vs varchar (clusters.name), then jsonb
+// (objects.annotations) vs text ('{}' literal). SQLite is dynamically typed and
+// never reproduced either, so only a real-Postgres clusters-rooted query guards
+// these. The nested descendants+ also drives the transitive CTE's outer select
+// through the same union, covering that cast too.
+func TestPostgres_ClusterRoot(t *testing.T) {
+	t.Parallel()
+	proj := pgProj(map[string]any{"kind": true, "metadata": map[string]any{"name": true}})
+	status := queryPostgres(t, v1alpha1.QuerySpec{
+		Root: v1alpha1.RootClusters,
+		Objects: &v1alpha1.ObjectsSpec{
+			Cluster: true,
+			Object:  proj,
+			Relations: map[string]v1alpha1.RelationSpec{
+				"members": {Objects: &v1alpha1.ObjectsSpec{
+					Cluster: true,
+					Object:  proj,
+					Relations: map[string]v1alpha1.RelationSpec{
+						"descendants+": {Objects: &v1alpha1.ObjectsSpec{Object: proj}},
+					},
+				}},
+			},
+		},
+	})
+	// Both engaged clusters must come back as root nodes.
+	if len(status.Objects) != 2 {
+		t.Fatalf("expected 2 cluster roots (cluster-a, cluster-b), got %d", len(status.Objects))
+	}
+	for _, c := range status.Objects {
+		if c.Cluster == "" {
+			t.Fatal("expected cluster root to carry its cluster name")
+		}
+		if len(c.Relations["members"]) == 0 {
+			t.Fatalf("expected synced objects as members of %q", c.Cluster)
+		}
+	}
+}
+
 func TestPostgres_Projection(t *testing.T) {
 	t.Parallel()
 	status := queryPostgres(t, v1alpha1.QuerySpec{

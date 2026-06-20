@@ -645,4 +645,10 @@ func TestSQL_ClusterRootUnionIDIsText(t *testing.T) {
 	assertContains(t, q.SQL, "AS TEXT) AS id")
 	// No relation branch may project a bare uuid id into the union.
 	assertNotContains(t, q.SQL, "l1.id,")
+	// Synthesized JSON columns must be typed jsonb, not bare text literals, or
+	// the UNION ALL fails "text and jsonb cannot be matched" (42804).
+	assertContains(t, q.SQL, "'{}'::jsonb AS annotations")
+	assertContains(t, q.SQL, "'[]'::jsonb AS owner_refs")
+	assertContains(t, q.SQL, "'[]'::jsonb AS conditions")
+	assertNotContains(t, q.SQL, "'{}' AS annotations")
 }
