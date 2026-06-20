@@ -168,11 +168,15 @@ func buildOwnerJoin(ctx relationContext) (string, []string, []any) {
 	var join string
 	switch ctx.dialect {
 	case "postgres":
+		// Guard jsonb_array_elements against rows whose owner_refs is a JSON
+		// scalar (e.g. legacy "null" rows) — it errors with "cannot extract
+		// elements from a scalar" otherwise.
 		join = fmt.Sprintf(
 			"JOIN objects %s ON %s.cluster = %s.cluster "+
-				"AND %s.uid IN (SELECT ref->>'uid' FROM jsonb_array_elements(%s.owner_refs) ref)",
+				"AND %s.uid IN (SELECT ref->>'uid' FROM jsonb_array_elements("+
+				"CASE WHEN jsonb_typeof(%s.owner_refs) = 'array' THEN %s.owner_refs ELSE '[]'::jsonb END) ref)",
 			ctx.childAlias, ctx.childAlias, ctx.parentAlias,
-			ctx.childAlias, ctx.parentAlias)
+			ctx.childAlias, ctx.parentAlias, ctx.parentAlias)
 	default: // sqlite
 		join = fmt.Sprintf(
 			"JOIN objects %s ON %s.cluster = %s.cluster "+
@@ -374,16 +378,20 @@ func buildLinkedJoin(ctx relationContext) (string, []string, []any) {
 	var join string
 	switch ctx.dialect {
 	case "postgres":
+		// Wrap the annotation payload in a typeof guard: a malformed or
+		// non-array relates-to value would otherwise abort the whole query
+		// with "cannot extract elements from a scalar".
 		join = fmt.Sprintf(
 			"JOIN LATERAL jsonb_array_elements("+
-				"(%s.object->'metadata'->'annotations'->>'kuery.io/relates-to')::jsonb"+
+				"CASE WHEN jsonb_typeof((%s.object->'metadata'->'annotations'->>'kuery.io/relates-to')::jsonb) = 'array' "+
+				"THEN (%s.object->'metadata'->'annotations'->>'kuery.io/relates-to')::jsonb ELSE '[]'::jsonb END"+
 				") AS ref ON true "+
 				"JOIN objects %s ON %s.cluster = COALESCE(ref->>'cluster', %s.cluster) "+
 				"AND %s.api_group = COALESCE(ref->>'group', '') "+
 				"AND %s.kind = ref->>'kind' "+
 				"AND %s.namespace = COALESCE(ref->>'namespace', '') "+
 				"AND %s.name = ref->>'name'",
-			ctx.parentAlias,
+			ctx.parentAlias, ctx.parentAlias,
 			ctx.childAlias, ctx.childAlias, ctx.parentAlias,
 			ctx.childAlias,
 			ctx.childAlias,

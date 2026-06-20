@@ -95,9 +95,15 @@ func (h *EventHandler) toObjectModel(u *unstructured.Unstructured) (*store.Objec
 	// Extract annotations.
 	annotationsJSON, _ := json.Marshal(u.GetAnnotations())
 
-	// Extract ownerReferences.
+	// Extract ownerReferences. A nil slice marshals to JSON "null", which
+	// Postgres' jsonb_array_elements rejects with "cannot extract elements
+	// from a scalar" during owner-relation traversal (SQLite's json_each
+	// tolerates it). Normalise the empty case to an empty JSON array.
 	ownerRefs := u.GetOwnerReferences()
 	ownerRefsJSON, _ := json.Marshal(ownerRefs)
+	if len(ownerRefs) == 0 {
+		ownerRefsJSON = []byte("[]")
+	}
 
 	// Extract conditions from status.conditions if present.
 	conditionsJSON := extractConditions(u)
