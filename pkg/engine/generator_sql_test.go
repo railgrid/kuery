@@ -574,7 +574,8 @@ func TestSQL_IDFilter(t *testing.T) {
 			},
 		},
 	})
-	assertContains(t, q.SQL, "obj.id = ?")
+	// id is cast to text so non-UUID synthetic ids don't abort on Postgres.
+	assertContains(t, q.SQL, "CAST(obj.id AS TEXT) = ?")
 	if q.Args[0] != "abc-123" {
 		t.Errorf("expected arg=abc-123, got %v", q.Args[0])
 	}

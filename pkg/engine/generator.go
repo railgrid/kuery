@@ -792,7 +792,13 @@ func (g *Generator) buildObjectFilterWithRT(f v1alpha1.ObjectFilter, alias, rtAl
 	}
 
 	if f.ID != "" {
-		clauses = append(clauses, alias+".id = ?")
+		// Compare against the text form of id: callers may pass synthetic ids
+		// (e.g. "<uid>:references:0" for virtual relation nodes) that are not
+		// valid UUIDs. On Postgres (uuid column) a raw "id = ?" would abort the
+		// query with "invalid input syntax for type uuid" (SQLSTATE 22P02);
+		// casting lets it simply not match. SQLite stores id as text, so the
+		// cast is a no-op there.
+		clauses = append(clauses, "CAST("+alias+".id AS TEXT) = ?")
 		args = append(args, f.ID)
 	}
 
