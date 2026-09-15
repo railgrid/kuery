@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
-	"github.com/faroshq/kuery/pkg/engine"
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/pkg/engine"
+	"github.com/railgrid/kuery/pkg/store"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

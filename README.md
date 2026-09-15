@@ -1,6 +1,6 @@
 # kuery
 
-[![CI](https://github.com/faroshq/kuery/actions/workflows/ci.yml/badge.svg)](https://github.com/faroshq/kuery/actions/workflows/ci.yml)
+[![CI](https://github.com/railgrid/kuery/actions/workflows/ci.yml/badge.svg)](https://github.com/railgrid/kuery/actions/workflows/ci.yml)
 
 A Kubernetes query API server that enables rich, nested queries across multiple clusters. kuery syncs objects from multiple Kubernetes clusters into a SQL database and exposes a powerful query engine via a standard Kubernetes API (`POST /apis/kuery.io/v1alpha1/queries`).
 
@@ -569,7 +569,7 @@ kuery exposes Prometheus metrics on the standard `/metrics` endpoint:
 ## Project Structure
 
 ```
-github.com/faroshq/kuery/
+github.com/railgrid/kuery/
 ├── apis/query/v1alpha1/     # API types (Query, QuerySpec, QueryStatus)
 ├── cmd/kuery/               # Server entrypoint
 ├── deploy/                  # Dockerfile + Kubernetes manifests

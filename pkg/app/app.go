@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
-	"github.com/faroshq/kuery/pkg/provider"
-	"github.com/faroshq/kuery/pkg/server"
-	"github.com/faroshq/kuery/pkg/store"
-	kuerysync "github.com/faroshq/kuery/pkg/sync"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/pkg/provider"
+	"github.com/railgrid/kuery/pkg/server"
+	"github.com/railgrid/kuery/pkg/store"
+	kuerysync "github.com/railgrid/kuery/pkg/sync"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"

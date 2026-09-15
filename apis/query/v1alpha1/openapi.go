@@ -9,7 +9,7 @@ import (
 // This avoids running full code-gen while satisfying the apiserver's SSA requirement.
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/faroshq/kuery/apis/query/v1alpha1.Query": {
+		"github.com/railgrid/kuery/apis/query/v1alpha1.Query": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Query is a POST-only virtual resource for executing queries.",

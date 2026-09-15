@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/pkg/store"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -239,4 +239,3 @@ func TestEventHandler_OwnerRefs(t *testing.T) {
 		t.Errorf("ownerRef UID = %q, want %q", ownerRefs[0].UID, "deploy-uid")
 	}
 }
-

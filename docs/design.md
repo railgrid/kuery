@@ -812,7 +812,7 @@ No per-object RBAC in the query engine. Authentication and authorization handled
 ## Project Structure
 
 ```
-github.com/faroshq/kuery/
+github.com/railgrid/kuery/
 ├── apis/query/v1alpha1/
 │   ├── types.go              # Query CRD types
 │   ├── groupversion_info.go  # Scheme registration
@@ -903,7 +903,7 @@ github.com/faroshq/kuery/
 | # | Decision | Resolution |
 |---|---|---|
 | Q1 | Serving model | Generic API server (`k8s.io/apiserver`), POST-only like SAR |
-| Q2 | Module path | `github.com/faroshq/kuery` |
+| Q2 | Module path | `github.com/railgrid/kuery` |
 | Q3 | What GVKs to sync | All discoverable, configurable blacklist |
 | Q4 | Database | GORM ORM, SQLite default/dev, PostgreSQL prod |
 | Q5 | Provider | kubeconfig provider |

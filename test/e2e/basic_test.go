@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,7 +66,7 @@ func TestBasic_FilterByLabels(t *testing.T) {
 				{Labels: map[string]string{"app": "nginx"}, Namespace: "demo"},
 			},
 		},
-		Count: true,
+		Count:   true,
 		Objects: &v1alpha1.ObjectsSpec{Object: projectionSpec(map[string]any{"metadata": map[string]any{"name": true}})},
 	})
 	if status.Count == nil || *status.Count == 0 {

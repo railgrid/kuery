@@ -42,7 +42,7 @@ spec:
       serviceAccountName: kuery
       containers:
         - name: kuery
-          image: ghcr.io/faroshq/kuery:latest
+          image: ghcr.io/railgrid/kuery:latest
           args:
             - --driver=sqlite
             - --dsn=/data/kuery.db

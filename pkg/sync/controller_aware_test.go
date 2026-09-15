@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/pkg/store"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
@@ -46,17 +46,17 @@ type fakeCluster struct {
 
 var _ cluster.Cluster = &fakeCluster{}
 
-func (f *fakeCluster) GetConfig() *rest.Config                              { return f.cfg }
-func (f *fakeCluster) GetHTTPClient() *http.Client                         { return nil }
-func (f *fakeCluster) GetCache() cache.Cache                               { return nil }
-func (f *fakeCluster) GetScheme() *runtime.Scheme                          { return runtime.NewScheme() }
-func (f *fakeCluster) GetClient() client.Client                            { return nil }
-func (f *fakeCluster) GetFieldIndexer() client.FieldIndexer                { return nil }
-func (f *fakeCluster) GetRESTMapper() meta.RESTMapper                      { return nil }
-func (f *fakeCluster) GetAPIReader() client.Reader                         { return nil }
-func (f *fakeCluster) GetEventRecorderFor(_ string) record.EventRecorder   { return nil }
-func (f *fakeCluster) GetEventRecorder(_ string) events.EventRecorder      { return nil }
-func (f *fakeCluster) Start(_ context.Context) error                       { return nil }
+func (f *fakeCluster) GetConfig() *rest.Config                           { return f.cfg }
+func (f *fakeCluster) GetHTTPClient() *http.Client                       { return nil }
+func (f *fakeCluster) GetCache() cache.Cache                             { return nil }
+func (f *fakeCluster) GetScheme() *runtime.Scheme                        { return runtime.NewScheme() }
+func (f *fakeCluster) GetClient() client.Client                          { return nil }
+func (f *fakeCluster) GetFieldIndexer() client.FieldIndexer              { return nil }
+func (f *fakeCluster) GetRESTMapper() meta.RESTMapper                    { return nil }
+func (f *fakeCluster) GetAPIReader() client.Reader                       { return nil }
+func (f *fakeCluster) GetEventRecorderFor(_ string) record.EventRecorder { return nil }
+func (f *fakeCluster) GetEventRecorder(_ string) events.EventRecorder    { return nil }
+func (f *fakeCluster) Start(_ context.Context) error                     { return nil }
 
 // emptyDiscoveryServer serves a minimal, valid discovery surface with no
 // resources, so RunDiscovery succeeds and yields nothing watchable. Any other

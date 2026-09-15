@@ -14,9 +14,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/faroshq/kuery/pkg/app"
-	providerkcp "github.com/faroshq/kuery/pkg/provider/kcp"
-	kuerysync "github.com/faroshq/kuery/pkg/sync"
+	"github.com/railgrid/kuery/pkg/app"
+	providerkcp "github.com/railgrid/kuery/pkg/provider/kcp"
+	kuerysync "github.com/railgrid/kuery/pkg/sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

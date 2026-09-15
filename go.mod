@@ -1,4 +1,4 @@
-module github.com/faroshq/kuery
+module github.com/railgrid/kuery
 
 go 1.25.1
 
