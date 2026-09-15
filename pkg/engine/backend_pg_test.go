@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faroshq/kuery/pkg/store"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/railgrid/kuery/pkg/store"
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -30,9 +30,9 @@ import (
 // (uuid/jsonb UNION typing, ambiguous columns, @> containment) actually live.
 
 var (
-	pgBaseDSN string         // URL DSN to the shared container database
-	pgAdminDB *sql.DB        // admin connection used to CREATE/DROP per-test schemas
-	pgSchemaN atomic.Int64   // monotonic counter for unique schema names
+	pgBaseDSN string       // URL DSN to the shared container database
+	pgAdminDB *sql.DB      // admin connection used to CREATE/DROP per-test schemas
+	pgSchemaN atomic.Int64 // monotonic counter for unique schema names
 )
 
 func TestMain(m *testing.M) {

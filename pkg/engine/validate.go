@@ -3,17 +3,17 @@ package engine
 import (
 	"fmt"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 )
 
 const (
-	DefaultLimit         = 100
-	MaxLimit             = 10000
-	DefaultMaxDepth      = 10
-	HardMaxDepth         = 20
-	MaxTotalRows         = 10000
-	MaxRelationBlocks    = 10
-	DefaultQueryTimeout  = 30 // seconds
+	DefaultLimit        = 100
+	MaxLimit            = 10000
+	DefaultMaxDepth     = 10
+	HardMaxDepth        = 20
+	MaxTotalRows        = 10000
+	MaxRelationBlocks   = 10
+	DefaultQueryTimeout = 30 // seconds
 )
 
 // ValidSortFields are the fields allowed in order specs.
@@ -23,7 +23,7 @@ var ValidSortFields = map[string]string{
 	"kind":              "obj.kind",
 	"apiGroup":          "obj.api_group",
 	"cluster":           "obj.cluster",
-	"creationTimestamp":  "obj.creation_ts",
+	"creationTimestamp": "obj.creation_ts",
 }
 
 // Validate checks a QuerySpec for correctness and applies defaults.

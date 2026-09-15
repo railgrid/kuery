@@ -7,15 +7,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 )
 
 // GeneratedQuery holds the generated SQL and its parameters.
 type GeneratedQuery struct {
-	SQL       string
-	Args      []any
-	CountSQL  string
-	CountArgs []any
+	SQL          string
+	Args         []any
+	CountSQL     string
+	CountArgs    []any
 	HasRelations bool
 }
 
@@ -227,7 +227,7 @@ func (g *Generator) generateWithRelations(spec *v1alpha1.QuerySpec) (*GeneratedQ
 		relationName string
 		relationSpec v1alpha1.RelationSpec
 		// Accumulated join chain from root.
-		ancestors    []ancestorLevel
+		ancestors     []ancestorLevel
 		parentObjSpec *v1alpha1.ObjectsSpec
 	}
 
@@ -239,10 +239,10 @@ func (g *Generator) generateWithRelations(spec *v1alpha1.QuerySpec) (*GeneratedQ
 	if spec.Objects != nil && spec.Objects.Relations != nil {
 		for relName, relSpec := range spec.Objects.Relations {
 			queue = append(queue, bfsNode{
-				level:        1,
-				relationName: relName,
-				relationSpec: relSpec,
-				ancestors:    nil,
+				level:         1,
+				relationName:  relName,
+				relationSpec:  relSpec,
+				ancestors:     nil,
 				parentObjSpec: spec.Objects,
 			})
 		}
@@ -455,10 +455,10 @@ func (g *Generator) generateWithRelations(spec *v1alpha1.QuerySpec) (*GeneratedQ
 			for _, relName := range childRelNames {
 				relSpec := node.relationSpec.Objects.Relations[relName]
 				queue = append(queue, bfsNode{
-					level:        node.level + 1,
-					relationName: relName,
-					relationSpec: relSpec,
-					ancestors:    currentAncestors,
+					level:         node.level + 1,
+					relationName:  relName,
+					relationSpec:  relSpec,
+					ancestors:     currentAncestors,
 					parentObjSpec: node.relationSpec.Objects,
 				})
 			}

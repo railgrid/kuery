@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 )
 
 func TestOrdering_NameAsc(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/faroshq/kuery/pkg/store"
 	"github.com/google/uuid"
+	"github.com/railgrid/kuery/pkg/store"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -160,4 +160,3 @@ func toUnstructured(obj interface{}) (*unstructured.Unstructured, bool) {
 	u, ok := obj.(*unstructured.Unstructured)
 	return u, ok
 }
-

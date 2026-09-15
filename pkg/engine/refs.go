@@ -24,23 +24,23 @@ type RefPath struct {
 var BuiltinRefPaths = []RefPath{
 	// Pod → Secret (volumes)
 	{SourceKind: "Pod", TargetKind: "Secret",
-		PGPath: "$.spec.volumes[*].secret.secretName",
+		PGPath:          "$.spec.volumes[*].secret.secretName",
 		SQLiteArrayPath: "$.spec.volumes", SQLiteFieldPath: "$.secret.secretName"},
 	// Pod → ConfigMap (volumes)
 	{SourceKind: "Pod", TargetKind: "ConfigMap",
-		PGPath: "$.spec.volumes[*].configMap.name",
+		PGPath:          "$.spec.volumes[*].configMap.name",
 		SQLiteArrayPath: "$.spec.volumes", SQLiteFieldPath: "$.configMap.name"},
 	// Pod → PersistentVolumeClaim (volumes)
 	{SourceKind: "Pod", TargetKind: "PersistentVolumeClaim",
-		PGPath: "$.spec.volumes[*].persistentVolumeClaim.claimName",
+		PGPath:          "$.spec.volumes[*].persistentVolumeClaim.claimName",
 		SQLiteArrayPath: "$.spec.volumes", SQLiteFieldPath: "$.persistentVolumeClaim.claimName"},
 	// Pod → ServiceAccount
 	{SourceKind: "Pod", TargetKind: "ServiceAccount",
-		PGPath: "$.spec.serviceAccountName",
+		PGPath:          "$.spec.serviceAccountName",
 		SQLiteArrayPath: "", SQLiteFieldPath: "$.spec.serviceAccountName"},
 	// Pod → Secret (imagePullSecrets)
 	{SourceKind: "Pod", TargetKind: "Secret",
-		PGPath: "$.spec.imagePullSecrets[*].name",
+		PGPath:          "$.spec.imagePullSecrets[*].name",
 		SQLiteArrayPath: "$.spec.imagePullSecrets", SQLiteFieldPath: "$.name"},
 
 	// Pod → Secret (env secretKeyRef) — nested arrays
@@ -66,26 +66,26 @@ var BuiltinRefPaths = []RefPath{
 		SQLiteArrayPath: "$.spec.rules", SQLiteFieldPath: "NESTED_INGRESS_SERVICE"},
 	// Ingress → Secret (TLS)
 	{SourceKind: "Ingress", SourceGroup: "networking.k8s.io", TargetKind: "Secret",
-		PGPath: "$.spec.tls[*].secretName",
+		PGPath:          "$.spec.tls[*].secretName",
 		SQLiteArrayPath: "$.spec.tls", SQLiteFieldPath: "$.secretName"},
 
 	// PersistentVolumeClaim → StorageClass
 	{SourceKind: "PersistentVolumeClaim", TargetKind: "StorageClass", TargetGroup: "storage.k8s.io",
-		PGPath: "$.spec.storageClassName",
+		PGPath:          "$.spec.storageClassName",
 		SQLiteArrayPath: "", SQLiteFieldPath: "$.spec.storageClassName"},
 	// PersistentVolumeClaim → PersistentVolume
 	{SourceKind: "PersistentVolumeClaim", TargetKind: "PersistentVolume",
-		PGPath: "$.spec.volumeName",
+		PGPath:          "$.spec.volumeName",
 		SQLiteArrayPath: "", SQLiteFieldPath: "$.spec.volumeName"},
 
 	// RoleBinding → ClusterRole/Role
 	{SourceKind: "RoleBinding", SourceGroup: "rbac.authorization.k8s.io",
 		TargetKind: "ClusterRole", TargetGroup: "rbac.authorization.k8s.io",
-		PGPath: "$.roleRef.name",
+		PGPath:          "$.roleRef.name",
 		SQLiteArrayPath: "", SQLiteFieldPath: "$.roleRef.name"},
 	{SourceKind: "ClusterRoleBinding", SourceGroup: "rbac.authorization.k8s.io",
 		TargetKind: "ClusterRole", TargetGroup: "rbac.authorization.k8s.io",
-		PGPath: "$.roleRef.name",
+		PGPath:          "$.roleRef.name",
 		SQLiteArrayPath: "", SQLiteFieldPath: "$.roleRef.name"},
 }
 

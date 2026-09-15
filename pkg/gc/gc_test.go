@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/pkg/store"
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"

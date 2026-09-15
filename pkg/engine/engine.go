@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
-	"github.com/faroshq/kuery/pkg/metrics"
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/pkg/metrics"
+	"github.com/railgrid/kuery/pkg/store"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"

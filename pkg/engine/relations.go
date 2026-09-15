@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 )
 
 // RelationType identifies the supported relation types (non-transitive).
 // Transitive variants (+ suffix) are handled in Phase 5.
 const (
-	RelOwners     = "owners"
+	RelOwners      = "owners"
 	RelDescendants = "descendants"
 	RelReferences  = "references"
 	RelSelects     = "selects"
@@ -457,7 +457,7 @@ func buildMembersJoin(ctx relationContext) (string, []string, []any) {
 // buildNamespaceJoin: namespaced object → the Namespace object it lives in.
 // A Namespace is the core-group object kind=Namespace whose name equals the
 // parent's namespace, in the same cluster. Cluster-scoped parents (namespace
-// '') resolve to nothing. Dialect-agnostic: pure column equality, no JSON.
+// ”) resolve to nothing. Dialect-agnostic: pure column equality, no JSON.
 func buildNamespaceJoin(ctx relationContext) (string, []string, []any) {
 	join := fmt.Sprintf(
 		"JOIN objects %s ON %s.cluster = %s.cluster "+
@@ -474,7 +474,7 @@ func buildNamespaceJoin(ctx relationContext) (string, []string, []any) {
 // buildNamespacedJoin: Namespace object → every object it contains (reverse of
 // buildNamespaceJoin). Members share the cluster and carry namespace = the
 // Namespace's name. Only fires when the parent is itself a Namespace. The
-// id guard keeps the Namespace from listing itself (its own namespace is '',
+// id guard keeps the Namespace from listing itself (its own namespace is ”,
 // so it can't match anyway, but it's cheap insurance). Dialect-agnostic.
 func buildNamespacedJoin(ctx relationContext) (string, []string, []any) {
 	join := fmt.Sprintf(

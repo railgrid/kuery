@@ -8,10 +8,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/faroshq/kuery/pkg/app"
-	"github.com/faroshq/kuery/pkg/provider"
-	"github.com/faroshq/kuery/pkg/provider/static"
-	kuerysync "github.com/faroshq/kuery/pkg/sync"
+	"github.com/railgrid/kuery/pkg/app"
+	"github.com/railgrid/kuery/pkg/provider"
+	"github.com/railgrid/kuery/pkg/provider/static"
+	kuerysync "github.com/railgrid/kuery/pkg/sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

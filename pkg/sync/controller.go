@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/pkg/store"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -294,6 +294,6 @@ type crdRefreshHandler struct {
 	refresh func()
 }
 
-func (h *crdRefreshHandler) OnAdd(_ interface{}, _ bool)        { h.refresh() }
-func (h *crdRefreshHandler) OnUpdate(_, _ interface{})          { h.refresh() }
-func (h *crdRefreshHandler) OnDelete(_ interface{})             { h.refresh() }
+func (h *crdRefreshHandler) OnAdd(_ interface{}, _ bool) { h.refresh() }
+func (h *crdRefreshHandler) OnUpdate(_, _ interface{})   { h.refresh() }
+func (h *crdRefreshHandler) OnDelete(_ interface{})      { h.refresh() }

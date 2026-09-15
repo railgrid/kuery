@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/faroshq/kuery/pkg/provider"
-	kuerysync "github.com/faroshq/kuery/pkg/sync"
+	"github.com/railgrid/kuery/pkg/provider"
+	kuerysync "github.com/railgrid/kuery/pkg/sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

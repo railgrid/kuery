@@ -5,7 +5,7 @@ package engine
 import (
 	"testing"
 
-	"github.com/faroshq/kuery/pkg/store"
+	"github.com/railgrid/kuery/pkg/store"
 )
 
 // newBackendStore returns a fresh in-memory SQLite store. This is the default

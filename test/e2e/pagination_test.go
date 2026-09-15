@@ -5,7 +5,7 @@ package e2e_test
 import (
 	"testing"
 
-	"github.com/faroshq/kuery/apis/query/v1alpha1"
+	"github.com/railgrid/kuery/apis/query/v1alpha1"
 )
 
 func TestPagination_Limit(t *testing.T) {
